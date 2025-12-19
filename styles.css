@@ -12,6 +12,16 @@
   --high: #ef5b5b;
   --glass: rgba(255, 255, 255, 0.65);
   --shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+  --bg: #f7f7f8;
+  --panel: #ffffff;
+  --text: #1b1b1f;
+  --muted: #6b6f76;
+  --line: #e6e7eb;
+  --accent: #202124;
+  --primary: #1f6feb;
+  --low: #42b883;
+  --medium: #f4b740;
+  --high: #ef5b5b;
 }
 
 * {
@@ -23,6 +33,7 @@
 
 body {
   background: radial-gradient(circle at top, #eef2ff 0%, #f9fafb 50%, #eef2ff 100%);
+  background: var(--bg);
   color: var(--text);
   min-height: 100vh;
 }
@@ -76,6 +87,7 @@ textarea {
   border: 1px solid var(--line);
   padding: 10px 14px;
   background: rgba(255, 255, 255, 0.9);
+  background: var(--panel);
   color: var(--text);
   font-size: 14px;
 }
@@ -130,6 +142,10 @@ button.icon {
 
 .segmented {
   background: rgba(255, 255, 255, 0.75);
+}
+
+.segmented {
+  background: var(--panel);
   padding: 6px;
   border-radius: 999px;
   border: 1px solid var(--line);
@@ -238,6 +254,13 @@ button.icon {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  background: #f1f4ff;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid #dbe4ff;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .event-meta {
