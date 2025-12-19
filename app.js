@@ -11,6 +11,8 @@ const storageKey = "calender-data";
 const elements = {
   calendarView: document.getElementById("calendarView"),
   rangeLabel: document.getElementById("rangeLabel"),
+  monthLabel: document.getElementById("monthLabel"),
+  viewToolbar: document.getElementById("viewToolbar"),
   upcomingList: document.getElementById("upcomingList"),
   upcomingCount: document.getElementById("upcomingCount"),
   taskList: document.getElementById("taskList"),
@@ -85,6 +87,10 @@ const isSameDay = (a, b) =>
   a.getDate() === b.getDate();
 
 const normalizeDate = (value) => new Date(`${value}T00:00:00`);
+const toLocalDateString = (date) => {
+  const offset = date.getTimezoneOffset();
+  return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 10);
+};
 
 const getWeekRange = (date) => {
   const start = new Date(date);
@@ -102,6 +108,28 @@ const getMonthRange = (date) => {
 };
 
 const withinRange = (date, start, end) => date >= start && date <= end;
+
+const getRangeForView = () => {
+  if (state.view === "day") {
+    const start = normalizeDate(toLocalDateString(state.currentDate));
+    return { start, end: start };
+  }
+  if (state.view === "week") {
+    const { start, end } = getWeekRange(state.currentDate);
+    return {
+      start: normalizeDate(toLocalDateString(start)),
+      end: normalizeDate(toLocalDateString(end)),
+    };
+  }
+  const { start, end } = getMonthRange(state.currentDate);
+  return {
+    start: normalizeDate(toLocalDateString(start)),
+    end: normalizeDate(toLocalDateString(end)),
+  };
+};
+
+const shouldShowRecurring = () =>
+  document.getElementById("showRecurring")?.checked ?? true;
 
 const expandRecurring = (items, range) => {
   const expanded = [];
@@ -127,6 +155,14 @@ const expandRecurring = (items, range) => {
   return expanded;
 };
 
+const expandRecurringItems = (items, range) =>
+  shouldShowRecurring() ? expandRecurring(items, range) : items;
+
+const setRangeLabel = () => {
+  elements.monthLabel.textContent = state.currentDate.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
 const setRangeLabel = () => {
   if (state.view === "day") {
     elements.rangeLabel.textContent = state.currentDate.toLocaleDateString(
@@ -164,11 +200,21 @@ const renderCalendar = () => {
 const createEventChip = (event) => {
   const chip = document.createElement("div");
   chip.className = "event-chip";
+  const color = event.color || "#1f6feb";
+  chip.style.borderLeft = `3px solid ${color}`;
+  const info = document.createElement("div");
+  info.className = "event-details";
   const info = document.createElement("div");
   info.innerHTML = `
     <strong>${event.title}</strong>
     <div class="event-meta">${formatTime(event.start)} · ${event.duration}m</div>
   `;
+  if (event.category) {
+    const category = document.createElement("span");
+    category.className = "category-pill";
+    category.textContent = event.category;
+    info.appendChild(category);
+  }
   const badge = document.createElement("span");
   badge.className = `priority ${event.priority}`;
   badge.textContent = priorityLabel[event.priority];
@@ -190,6 +236,7 @@ const renderMonth = () => {
     grid.appendChild(span);
   });
 
+  const expandedEvents = expandRecurringItems(state.events, {
   const expandedEvents = expandRecurring(state.events, {
     start: startDay,
     end: new Date(range.end.getFullYear(), range.end.getMonth(), range.end.getDate() + 7),
@@ -230,6 +277,7 @@ const renderWeek = () => {
   const grid = document.createElement("div");
   grid.className = "calendar-grid week";
   const { start, end } = getWeekRange(state.currentDate);
+  const expandedEvents = expandRecurringItems(state.events, { start, end });
   const expandedEvents = expandRecurring(state.events, { start, end });
   for (let i = 0; i < 7; i += 1) {
     const day = new Date(start);
@@ -267,6 +315,7 @@ const renderDay = () => {
   });
   cell.appendChild(number);
   const range = { start: state.currentDate, end: state.currentDate };
+  const expandedEvents = expandRecurringItems(state.events, range);
   const expandedEvents = expandRecurring(state.events, range);
   const eventsForDay = expandedEvents.filter((event) =>
     isSameDay(normalizeDate(event.date), state.currentDate)
@@ -284,6 +333,7 @@ const renderDay = () => {
 
 const renderUpcoming = () => {
   const range = getMonthRange(state.currentDate);
+  const expandedEvents = expandRecurringItems(state.events, range);
   const expandedEvents = expandRecurring(state.events, range);
   const upcoming = expandedEvents
     .map((event) => ({
@@ -312,6 +362,13 @@ const renderUpcoming = () => {
         <div class="event-meta">${formatDate(event.dateObj)} · ${formatTime(
       event.start
     )} · ${event.duration}m</div>
+        <div class="item-meta">
+          <span class="event-meta">${recurringLabel[event.recurring]}</span>
+          ${event.category ? `<span class="category-pill">${event.category}</span>` : ""}
+        </div>
+      </div>
+    `;
+    item.style.borderLeft = `3px solid ${event.color || "#1f6feb"}`;
         <div class="event-meta">${recurringLabel[event.recurring]}</div>
       </div>
     `;
@@ -324,6 +381,15 @@ const renderUpcoming = () => {
 };
 
 const renderTasks = () => {
+  const range = getRangeForView();
+  const expandedTasks = expandRecurringItems(state.tasks, range);
+  const tasks = expandedTasks
+    .map((task) => ({
+      ...task,
+      dateObj: normalizeDate(task.date),
+    }))
+    .filter((task) => withinRange(task.dateObj, range.start, range.end))
+    .sort((a, b) => a.date.localeCompare(b.date));
   const tasks = state.tasks.slice().sort((a, b) => a.date.localeCompare(b.date));
   const renderList = (container) => {
     container.innerHTML = "";
@@ -339,6 +405,13 @@ const renderTasks = () => {
         <div>
           <strong>${task.title}</strong>
           <div class="event-meta">Due ${formatDate(normalizeDate(task.date))}</div>
+          <div class="item-meta">
+            <span class="event-meta">${recurringLabel[task.recurring]}</span>
+            ${task.category ? `<span class="category-pill">${task.category}</span>` : ""}
+          </div>
+        </div>
+      `;
+      item.style.borderLeft = `3px solid ${task.color || "#42b883"}`;
           <div class="event-meta">${recurringLabel[task.recurring]}</div>
         </div>
       `;
@@ -360,6 +433,12 @@ const updateTab = (tab) => {
   });
   elements.tasksPanel.classList.toggle("hidden", tab !== "tasks");
   elements.settingsPanel.classList.toggle("hidden", tab !== "settings");
+  elements.viewToolbar.classList.toggle("hidden", tab === "settings");
+  document.querySelector(".content").style.display =
+    tab === "calendar" ? "grid" : "none";
+  if (tab === "tasks") {
+    renderTasks();
+  }
   document.querySelector(".content").style.display =
     tab === "calendar" ? "grid" : "none";
 };
@@ -397,6 +476,8 @@ const handleEventSubmit = (event) => {
     duration: Number(formData.get("duration")),
     recurring: formData.get("recurring"),
     priority: formData.get("priority"),
+    color: formData.get("color") || "#1f6feb",
+    category: formData.get("category").trim() || null,
     notes: formData.get("notes"),
   });
   event.target.reset();
@@ -414,6 +495,8 @@ const handleTaskSubmit = (event) => {
     date: formData.get("date"),
     recurring: formData.get("recurring"),
     priority: formData.get("priority"),
+    color: formData.get("color") || "#42b883",
+    category: formData.get("category").trim() || null,
     notes: formData.get("notes"),
   });
   event.target.reset();
