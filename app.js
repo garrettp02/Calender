@@ -103,6 +103,14 @@ const getMonthRange = (date) => {
 
 const withinRange = (date, start, end) => date >= start && date <= end;
 
+const shouldShowRecurring = () =>
+  document.getElementById("showRecurring")?.checked ?? true;
+
+const expandRecurring = (items, range) => {
+  if (!shouldShowRecurring()) return items.map((item) => ({ ...item, baseId: item.id }));
+  const expanded = [];
+  items.forEach((item) => {
+    expanded.push({ ...item, baseId: item.id });
 const expandRecurring = (items, range) => {
   const expanded = [];
   items.forEach((item) => {
@@ -115,6 +123,7 @@ const expandRecurring = (items, range) => {
         expanded.push({
           ...item,
           id: `${item.id}-${current.toISOString()}`,
+          baseId: item.id,
           date: current.toISOString().slice(0, 10),
           recurringInstance: true,
         });
@@ -161,6 +170,18 @@ const renderCalendar = () => {
   renderTasks();
 };
 
+const deleteEvent = (eventId) => {
+  state.events = state.events.filter((event) => event.id !== eventId);
+  saveData();
+  renderCalendar();
+};
+
+const deleteTask = (taskId) => {
+  state.tasks = state.tasks.filter((task) => task.id !== taskId);
+  saveData();
+  renderTasks();
+};
+
 const createEventChip = (event) => {
   const chip = document.createElement("div");
   chip.className = "event-chip";
@@ -169,6 +190,18 @@ const createEventChip = (event) => {
     <strong>${event.title}</strong>
     <div class="event-meta">${formatTime(event.start)} · ${event.duration}m</div>
   `;
+  const actions = document.createElement("div");
+  actions.className = "chip-actions";
+  const badge = document.createElement("span");
+  badge.className = `priority ${event.priority}`;
+  badge.textContent = priorityLabel[event.priority];
+  const deleteBtn = document.createElement("button");
+  deleteBtn.className = "delete-btn";
+  deleteBtn.type = "button";
+  deleteBtn.textContent = "Delete";
+  deleteBtn.addEventListener("click", () => deleteEvent(event.baseId || event.id));
+  actions.append(badge, deleteBtn);
+  chip.append(info, actions);
   const badge = document.createElement("span");
   badge.className = `priority ${event.priority}`;
   badge.textContent = priorityLabel[event.priority];
@@ -306,6 +339,26 @@ const renderUpcoming = () => {
   upcoming.forEach((event) => {
     const item = document.createElement("div");
     item.className = "list-item";
+    const details = document.createElement("div");
+    details.innerHTML = `
+      <strong>${event.title}</strong>
+      <div class="event-meta">${formatDate(event.dateObj)} · ${formatTime(
+      event.start
+    )} · ${event.duration}m</div>
+      <div class="event-meta">${recurringLabel[event.recurring]}</div>
+    `;
+    const actions = document.createElement("div");
+    actions.className = "item-actions";
+    const badge = document.createElement("span");
+    badge.className = `priority ${event.priority}`;
+    badge.textContent = priorityLabel[event.priority];
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "delete-btn";
+    deleteBtn.type = "button";
+    deleteBtn.textContent = "Delete";
+    deleteBtn.addEventListener("click", () => deleteEvent(event.baseId || event.id));
+    actions.append(badge, deleteBtn);
+    item.append(details, actions);
     item.innerHTML = `
       <div>
         <strong>${event.title}</strong>
@@ -335,6 +388,24 @@ const renderTasks = () => {
     tasks.forEach((task) => {
       const item = document.createElement("div");
       item.className = "list-item";
+      const details = document.createElement("div");
+      details.innerHTML = `
+        <strong>${task.title}</strong>
+        <div class="event-meta">Due ${formatDate(normalizeDate(task.date))}</div>
+        <div class="event-meta">${recurringLabel[task.recurring]}</div>
+      `;
+      const actions = document.createElement("div");
+      actions.className = "item-actions";
+      const badge = document.createElement("span");
+      badge.className = `priority ${task.priority}`;
+      badge.textContent = priorityLabel[task.priority];
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "delete-btn";
+      deleteBtn.type = "button";
+      deleteBtn.textContent = "Delete";
+      deleteBtn.addEventListener("click", () => deleteTask(task.id));
+      actions.append(badge, deleteBtn);
+      item.append(details, actions);
       item.innerHTML = `
         <div>
           <strong>${task.title}</strong>
@@ -463,6 +534,10 @@ const setupListeners = () => {
 
   elements.defaultView.addEventListener("change", (event) => {
     updateView(event.target.value);
+  });
+
+  document.getElementById("showRecurring").addEventListener("change", () => {
+    renderCalendar();
   });
 };
 
