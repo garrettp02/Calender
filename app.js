@@ -111,6 +111,10 @@ const expandRecurring = (items, range) => {
   const expanded = [];
   items.forEach((item) => {
     expanded.push({ ...item, baseId: item.id });
+const expandRecurring = (items, range) => {
+  const expanded = [];
+  items.forEach((item) => {
+    expanded.push(item);
     if (item.recurring === "none") return;
     const baseDate = normalizeDate(item.date);
     const current = new Date(baseDate);
@@ -198,6 +202,10 @@ const createEventChip = (event) => {
   deleteBtn.addEventListener("click", () => deleteEvent(event.baseId || event.id));
   actions.append(badge, deleteBtn);
   chip.append(info, actions);
+  const badge = document.createElement("span");
+  badge.className = `priority ${event.priority}`;
+  badge.textContent = priorityLabel[event.priority];
+  chip.append(info, badge);
   return chip;
 };
 
@@ -351,6 +359,19 @@ const renderUpcoming = () => {
     deleteBtn.addEventListener("click", () => deleteEvent(event.baseId || event.id));
     actions.append(badge, deleteBtn);
     item.append(details, actions);
+    item.innerHTML = `
+      <div>
+        <strong>${event.title}</strong>
+        <div class="event-meta">${formatDate(event.dateObj)} · ${formatTime(
+      event.start
+    )} · ${event.duration}m</div>
+        <div class="event-meta">${recurringLabel[event.recurring]}</div>
+      </div>
+    `;
+    const badge = document.createElement("span");
+    badge.className = `priority ${event.priority}`;
+    badge.textContent = priorityLabel[event.priority];
+    item.appendChild(badge);
     elements.upcomingList.appendChild(item);
   });
 };
@@ -385,6 +406,17 @@ const renderTasks = () => {
       deleteBtn.addEventListener("click", () => deleteTask(task.id));
       actions.append(badge, deleteBtn);
       item.append(details, actions);
+      item.innerHTML = `
+        <div>
+          <strong>${task.title}</strong>
+          <div class="event-meta">Due ${formatDate(normalizeDate(task.date))}</div>
+          <div class="event-meta">${recurringLabel[task.recurring]}</div>
+        </div>
+      `;
+      const badge = document.createElement("span");
+      badge.className = `priority ${task.priority}`;
+      badge.textContent = priorityLabel[task.priority];
+      item.appendChild(badge);
       container.appendChild(item);
     });
   };
