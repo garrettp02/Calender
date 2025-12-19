@@ -16,8 +16,6 @@
     <div class="app">
       <header class="top-bar">
         <div>
-          <p class="eyebrow">Overview</p>
-          <h1 id="monthLabel">March 2025</h1>
           <p class="eyebrow">Welcome back</p>
           <h1>Calendar</h1>
         </div>
@@ -28,7 +26,6 @@
         </div>
       </header>
 
-      <section class="toolbar" id="viewToolbar">
       <section class="toolbar">
         <div class="segmented" role="tablist">
           <button class="segment active" data-view="day">Day</button>
@@ -98,22 +95,12 @@
               <input type="number" name="duration" min="15" step="15" value="60" />
             </label>
             <label>
-              Color
-              <input type="color" name="color" value="#1f6feb" />
-            </label>
-          </div>
-          <div class="grid">
-            <label>
               Priority
               <select name="priority">
                 <option value="low">Low</option>
                 <option value="medium" selected>Medium</option>
                 <option value="high">High</option>
               </select>
-            </label>
-            <label>
-              Category
-              <input type="text" name="category" placeholder="Design, Work, Personal" />
             </label>
           </div>
           <label>
@@ -124,14 +111,6 @@
               <option value="weekly">Weekly</option>
               <option value="monthly">Monthly</option>
             </select>
-          </label>
-          <label>
-            Color
-            <input type="color" name="color" value="#42b883" />
-          </label>
-          <label>
-            Category
-            <input type="text" name="category" placeholder="Errands, Admin, Focus" />
           </label>
           <label>
             Notes
