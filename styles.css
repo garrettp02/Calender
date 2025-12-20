@@ -87,6 +87,11 @@ button.ghost {
   border-color: var(--line);
 }
 
+button.ghost.danger {
+  color: var(--high);
+  border-color: rgba(239, 91, 91, 0.5);
+}
+
 button.text {
   background: none;
   border: none;
@@ -301,6 +306,22 @@ button.icon {
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:focus-visible {
+  outline: 2px solid rgba(31, 111, 235, 0.4);
+  outline-offset: 2px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .list-item span {
