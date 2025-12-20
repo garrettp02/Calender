@@ -19,25 +19,29 @@
           <p class="eyebrow"></p>
           <h1></h1>
         </div>
-        <div class="top-actions">
-          <button class="ghost" id="todayBtn">Today</button>
-          <button class="primary" id="addEventBtn">Add event</button>
-          <button class="ghost" id="addTaskBtn">Add task</button>
-        </div>
       </header>
 
       <section class="toolbar">
-        <div class="segmented" role="tablist">
-          <button class="segment active" data-view="day">Day</button>
-          <button class="segment" data-view="week">Week</button>
-          <button class="segment" data-view="month">Month</button>
+        <div class="toolbar-group">
+          <div class="segmented" role="tablist">
+            <button class="segment active" data-view="day">Day</button>
+            <button class="segment" data-view="week">Week</button>
+            <button class="segment" data-view="month">Month</button>
+          </div>
         </div>
-        <div class="date-controls">
-          <button class="icon" id="prevBtn" aria-label="Previous">
-            ‹
-          </button>
-          <div class="current-range" id="rangeLabel"></div>
-          <button class="icon" id="nextBtn" aria-label="Next">›</button>
+        <div class="toolbar-group center">
+          <div class="date-controls">
+            <button class="icon" id="prevBtn" aria-label="Previous">
+              ‹
+            </button>
+            <div class="current-range" id="rangeLabel"></div>
+            <button class="icon" id="nextBtn" aria-label="Next">›</button>
+          </div>
+        </div>
+        <div class="toolbar-group right">
+          <button class="ghost" id="todayBtn">Today</button>
+          <button class="primary" id="addEventBtn">Add event</button>
+          <button class="ghost" id="addTaskBtn">Add task</button>
         </div>
       </section>
 
@@ -71,7 +75,7 @@
     <div class="modal hidden" id="eventModal" role="dialog" aria-modal="true">
       <div class="modal-card">
         <div class="modal-header">
-          <h2>New event</h2>
+          <h2 id="eventModalTitle">New event</h2>
           <button class="icon" data-close>✕</button>
         </div>
         <form id="eventForm">
@@ -116,7 +120,12 @@
             Notes
             <textarea name="notes" rows="3" placeholder="Optional notes"></textarea>
           </label>
-          <button class="primary" type="submit">Save event</button>
+          <div class="modal-actions">
+            <button class="ghost danger hidden" type="button" id="eventDeleteBtn">
+              Delete event
+            </button>
+            <button class="primary" type="submit" id="eventSubmitBtn">Save event</button>
+          </div>
         </form>
       </div>
     </div>
@@ -124,7 +133,7 @@
     <div class="modal hidden" id="taskModal" role="dialog" aria-modal="true">
       <div class="modal-card">
         <div class="modal-header">
-          <h2>New task</h2>
+          <h2 id="taskModalTitle">New task</h2>
           <button class="icon" data-close>✕</button>
         </div>
         <form id="taskForm">
@@ -159,7 +168,12 @@
             Notes
             <textarea name="notes" rows="3" placeholder="Optional notes"></textarea>
           </label>
-          <button class="primary" type="submit">Save task</button>
+          <div class="modal-actions">
+            <button class="ghost danger hidden" type="button" id="taskDeleteBtn">
+              Delete task
+            </button>
+            <button class="primary" type="submit" id="taskSubmitBtn">Save task</button>
+          </div>
         </form>
       </div>
     </div>

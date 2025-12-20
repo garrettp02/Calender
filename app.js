@@ -17,6 +17,12 @@ const elements = {
   panelTaskList: document.getElementById("panelTaskList"),
   eventModal: document.getElementById("eventModal"),
   taskModal: document.getElementById("taskModal"),
+  eventModalTitle: document.getElementById("eventModalTitle"),
+  taskModalTitle: document.getElementById("taskModalTitle"),
+  eventDeleteBtn: document.getElementById("eventDeleteBtn"),
+  taskDeleteBtn: document.getElementById("taskDeleteBtn"),
+  eventSubmitBtn: document.getElementById("eventSubmitBtn"),
+  taskSubmitBtn: document.getElementById("taskSubmitBtn"),
   tasksPanel: document.getElementById("tasksPanel"),
   settingsPanel: document.getElementById("settingsPanel"),
   defaultView: document.getElementById("defaultView"),
@@ -86,6 +92,37 @@ const isSameDay = (a, b) =>
 
 const normalizeDate = (value) => new Date(`${value}T00:00:00`);
 
+const timeToMinutes = (time) => {
+  if (!time) return 0;
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+};
+
+const minutesToTimeLabel = (minutes) => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  const date = new Date();
+  date.setHours(hours, mins, 0, 0);
+  return date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+};
+
+const parseWorkingHours = () => {
+  const raw = document.getElementById("workingHours")?.value || "09:00 - 18:00";
+  const [startRaw, endRaw] = raw.split("-").map((part) => part.trim());
+  const start = timeToMinutes(startRaw || "09:00");
+  const end = timeToMinutes(endRaw || "18:00");
+  if (Number.isNaN(start) || Number.isNaN(end) || start >= end) {
+    return { start: timeToMinutes("09:00"), end: timeToMinutes("18:00") };
+  }
+  return { start, end };
+};
+
+const minutesToTopPx = (minutes, startMinutes, pxPerMinute) =>
+  Math.max(0, minutes - startMinutes) * pxPerMinute;
+
 const getWeekRange = (date) => {
   const start = new Date(date);
   const day = start.getDay();
@@ -106,7 +143,7 @@ const withinRange = (date, start, end) => date >= start && date <= end;
 const expandRecurring = (items, range) => {
   const expanded = [];
   items.forEach((item) => {
-    expanded.push(item);
+    expanded.push({ ...item, originalId: item.id });
     if (item.recurring === "none") return;
     const baseDate = normalizeDate(item.date);
     const current = new Date(baseDate);
@@ -115,6 +152,7 @@ const expandRecurring = (items, range) => {
         expanded.push({
           ...item,
           id: `${item.id}-${current.toISOString()}`,
+          originalId: item.id,
           date: current.toISOString().slice(0, 10),
           recurringInstance: true,
         });
@@ -125,6 +163,70 @@ const expandRecurring = (items, range) => {
     }
   });
   return expanded;
+};
+
+const deleteEvent = (eventId) => {
+  state.events = state.events.filter((event) => event.id !== eventId);
+  saveData();
+  renderCalendar();
+};
+
+const deleteTask = (taskId) => {
+  state.tasks = state.tasks.filter((task) => task.id !== taskId);
+  saveData();
+  renderTasks();
+};
+
+const resetEventForm = () => {
+  const form = document.getElementById("eventForm");
+  form.reset();
+  form.dataset.editingId = "";
+  elements.eventModalTitle.textContent = "New event";
+  elements.eventSubmitBtn.textContent = "Save event";
+  elements.eventDeleteBtn.classList.add("hidden");
+};
+
+const resetTaskForm = () => {
+  const form = document.getElementById("taskForm");
+  form.reset();
+  form.dataset.editingId = "";
+  elements.taskModalTitle.textContent = "New task";
+  elements.taskSubmitBtn.textContent = "Save task";
+  elements.taskDeleteBtn.classList.add("hidden");
+};
+
+const openEventEditor = (eventId) => {
+  const event = state.events.find((item) => item.id === eventId);
+  if (!event) return;
+  const form = document.getElementById("eventForm");
+  form.elements.title.value = event.title;
+  form.elements.date.value = event.date;
+  form.elements.start.value = event.start;
+  form.elements.duration.value = event.duration;
+  form.elements.recurring.value = event.recurring;
+  form.elements.priority.value = event.priority;
+  form.elements.notes.value = event.notes || "";
+  form.dataset.editingId = event.id;
+  elements.eventModalTitle.textContent = "Edit event";
+  elements.eventSubmitBtn.textContent = "Update event";
+  elements.eventDeleteBtn.classList.remove("hidden");
+  openModal(elements.eventModal);
+};
+
+const openTaskEditor = (taskId) => {
+  const task = state.tasks.find((item) => item.id === taskId);
+  if (!task) return;
+  const form = document.getElementById("taskForm");
+  form.elements.title.value = task.title;
+  form.elements.date.value = task.date;
+  form.elements.recurring.value = task.recurring;
+  form.elements.priority.value = task.priority;
+  form.elements.notes.value = task.notes || "";
+  form.dataset.editingId = task.id;
+  elements.taskModalTitle.textContent = "Edit task";
+  elements.taskSubmitBtn.textContent = "Update task";
+  elements.taskDeleteBtn.classList.remove("hidden");
+  openModal(elements.taskModal);
 };
 
 const setRangeLabel = () => {
@@ -163,8 +265,11 @@ const renderCalendar = () => {
 
 const createEventChip = (event) => {
   const chip = document.createElement("div");
-  chip.className = "event-chip";
+  chip.className = "event-chip clickable";
+  chip.setAttribute("role", "button");
+  chip.tabIndex = 0;
   const info = document.createElement("div");
+  info.className = "event-info";
   info.innerHTML = `
     <strong>${event.title}</strong>
     <div class="event-meta">${formatTime(event.start)} · ${event.duration}m</div>
@@ -173,7 +278,288 @@ const createEventChip = (event) => {
   badge.className = `priority ${event.priority}`;
   badge.textContent = priorityLabel[event.priority];
   chip.append(info, badge);
+  const openEditor = () => {
+    const targetId = event.originalId || event.id;
+    openEventEditor(targetId);
+  };
+  chip.addEventListener("click", openEditor);
+  chip.addEventListener("keydown", (keyEvent) => {
+    if (keyEvent.key === "Enter" || keyEvent.key === " ") {
+      keyEvent.preventDefault();
+      openEditor();
+    }
+  });
   return chip;
+};
+
+const layoutOverlapsForDay = (events) => {
+  const lanes = [];
+  const positioned = events.map((event) => {
+    let laneIndex = lanes.findIndex((endTime) => event.startMinutes >= endTime);
+    if (laneIndex === -1) {
+      laneIndex = lanes.length;
+      lanes.push(event.endMinutes);
+    } else {
+      lanes[laneIndex] = event.endMinutes;
+    }
+    return {
+      ...event,
+      lane: laneIndex,
+    };
+  });
+  return {
+    events: positioned,
+    laneCount: Math.max(1, lanes.length),
+  };
+};
+
+const applyEventDensity = (container) => {
+  const events = container.querySelectorAll(".timeline-event");
+  events.forEach((event) => {
+    event.classList.remove("event--full", "event--compact", "event--micro");
+    const height = event.clientHeight;
+    if (height <= 24) {
+      event.classList.add("event--micro");
+    } else if (height <= 44) {
+      event.classList.add("event--compact");
+    } else {
+      event.classList.add("event--full");
+    }
+  });
+};
+
+const renderDayTimeline = (container) => {
+  const { start, end } = parseWorkingHours();
+  const pxPerMinute = 1.2;
+  const totalMinutes = end - start;
+  const hourHeight = pxPerMinute * 60;
+  const timelineHeight = totalMinutes * pxPerMinute;
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "timeline-view day";
+
+  const header = document.createElement("div");
+  header.className = "timeline-header";
+  header.textContent = state.currentDate.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+
+  const body = document.createElement("div");
+  body.className = "timeline-body";
+
+  const labels = document.createElement("div");
+  labels.className = "time-labels";
+  labels.style.height = `${timelineHeight}px`;
+
+  for (let time = start; time <= end; time += 60) {
+    const label = document.createElement("div");
+    label.className = "time-label";
+    label.style.height = `${hourHeight}px`;
+    label.textContent = minutesToTimeLabel(time);
+    labels.appendChild(label);
+  }
+
+  const dayColumn = document.createElement("div");
+  dayColumn.className = "day-column";
+  dayColumn.style.height = `${timelineHeight}px`;
+  dayColumn.style.setProperty("--hour-height", `${hourHeight}px`);
+
+  const inner = document.createElement("div");
+  inner.className = "day-column-inner";
+  dayColumn.appendChild(inner);
+
+  const expandedEvents = expandRecurring(state.events, {
+    start: state.currentDate,
+    end: state.currentDate,
+  });
+
+  const dayEvents = expandedEvents
+    .filter((event) => isSameDay(normalizeDate(event.date), state.currentDate))
+    .map((event) => {
+      const startMinutes = timeToMinutes(event.start);
+      const endMinutes = startMinutes + event.duration;
+      return {
+        ...event,
+        startMinutes,
+        endMinutes,
+      };
+    })
+    .filter((event) => event.endMinutes > start && event.startMinutes < end)
+    .sort((a, b) => a.startMinutes - b.startMinutes);
+
+  const { events: positioned, laneCount } = layoutOverlapsForDay(dayEvents);
+
+  positioned.forEach((event) => {
+    const clampedStart = Math.max(event.startMinutes, start);
+    const clampedEnd = Math.min(event.endMinutes, end);
+    const top = minutesToTopPx(clampedStart, start, pxPerMinute);
+    const height = Math.max(24, (clampedEnd - clampedStart) * pxPerMinute);
+    const width = 100 / laneCount;
+    const left = event.lane * width;
+
+    const block = document.createElement("div");
+    block.className = "timeline-event clickable";
+    block.style.top = `${top}px`;
+    block.style.height = `${height}px`;
+    block.style.left = `${left}%`;
+    block.style.width = `${width}%`;
+    block.setAttribute("role", "button");
+    block.tabIndex = 0;
+    block.innerHTML = `
+      <strong class="event-title">${event.title}</strong>
+      <span class="event-meta event-time">${formatTime(event.start)} · ${
+      event.duration
+    }m</span>
+    `;
+    const openEditor = () => {
+      const targetId = event.originalId || event.id;
+      openEventEditor(targetId);
+    };
+    block.addEventListener("click", openEditor);
+    block.addEventListener("keydown", (keyEvent) => {
+      if (keyEvent.key === "Enter" || keyEvent.key === " ") {
+        keyEvent.preventDefault();
+        openEditor();
+      }
+    });
+    inner.appendChild(block);
+  });
+
+  body.append(labels, dayColumn);
+  wrapper.append(header, body);
+  container.appendChild(wrapper);
+  applyEventDensity(wrapper);
+};
+
+const renderWeekTimeline = (container) => {
+  const { start, end } = parseWorkingHours();
+  const pxPerMinute = 1.1;
+  const totalMinutes = end - start;
+  const hourHeight = pxPerMinute * 60;
+  const timelineHeight = totalMinutes * pxPerMinute;
+  const { start: weekStart, end: weekEnd } = getWeekRange(state.currentDate);
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "timeline-view week";
+
+  const header = document.createElement("div");
+  header.className = "timeline-header week-header";
+
+  const headerSpacer = document.createElement("div");
+  headerSpacer.className = "time-spacer";
+  header.appendChild(headerSpacer);
+
+  for (let i = 0; i < 7; i += 1) {
+    const day = new Date(weekStart);
+    day.setDate(weekStart.getDate() + i);
+    const label = document.createElement("div");
+    label.className = "week-day-label";
+    label.textContent = day.toLocaleDateString("en-US", {
+      weekday: "short",
+      day: "numeric",
+    });
+    header.appendChild(label);
+  }
+
+  const body = document.createElement("div");
+  body.className = "timeline-body week-body";
+
+  const labels = document.createElement("div");
+  labels.className = "time-labels";
+  labels.style.height = `${timelineHeight}px`;
+
+  for (let time = start; time <= end; time += 60) {
+    const label = document.createElement("div");
+    label.className = "time-label";
+    label.style.height = `${hourHeight}px`;
+    label.textContent = minutesToTimeLabel(time);
+    labels.appendChild(label);
+  }
+
+  const columns = document.createElement("div");
+  columns.className = "week-columns";
+
+  const expandedEvents = expandRecurring(state.events, { start: weekStart, end: weekEnd })
+    .map((event) => ({
+      ...event,
+      dateObj: normalizeDate(event.date),
+    }))
+    .filter((event) => event.dateObj >= weekStart && event.dateObj <= weekEnd);
+
+  for (let i = 0; i < 7; i += 1) {
+    const day = new Date(weekStart);
+    day.setDate(weekStart.getDate() + i);
+
+    const column = document.createElement("div");
+    column.className = "day-column";
+    column.style.height = `${timelineHeight}px`;
+    column.style.setProperty("--hour-height", `${hourHeight}px`);
+
+    const inner = document.createElement("div");
+    inner.className = "day-column-inner";
+    column.appendChild(inner);
+
+    const dayEvents = expandedEvents
+      .filter((event) => isSameDay(event.dateObj, day))
+      .map((event) => {
+        const startMinutes = timeToMinutes(event.start);
+        const endMinutes = startMinutes + event.duration;
+        return {
+          ...event,
+          startMinutes,
+          endMinutes,
+        };
+      })
+      .filter((event) => event.endMinutes > start && event.startMinutes < end)
+      .sort((a, b) => a.startMinutes - b.startMinutes);
+
+    const { events: positioned, laneCount } = layoutOverlapsForDay(dayEvents);
+
+    positioned.forEach((event) => {
+      const clampedStart = Math.max(event.startMinutes, start);
+      const clampedEnd = Math.min(event.endMinutes, end);
+      const top = minutesToTopPx(clampedStart, start, pxPerMinute);
+      const height = Math.max(22, (clampedEnd - clampedStart) * pxPerMinute);
+      const width = 100 / laneCount;
+      const left = event.lane * width;
+
+      const block = document.createElement("div");
+      block.className = "timeline-event clickable";
+      block.style.top = `${top}px`;
+      block.style.height = `${height}px`;
+      block.style.left = `${left}%`;
+      block.style.width = `${width}%`;
+      block.setAttribute("role", "button");
+      block.tabIndex = 0;
+      block.innerHTML = `
+        <strong class="event-title">${event.title}</strong>
+        <span class="event-meta event-time">${formatTime(event.start)} · ${
+        event.duration
+      }m</span>
+      `;
+      const openEditor = () => {
+        const targetId = event.originalId || event.id;
+        openEventEditor(targetId);
+      };
+      block.addEventListener("click", openEditor);
+      block.addEventListener("keydown", (keyEvent) => {
+        if (keyEvent.key === "Enter" || keyEvent.key === " ") {
+          keyEvent.preventDefault();
+          openEditor();
+        }
+      });
+      inner.appendChild(block);
+    });
+
+    columns.appendChild(column);
+  }
+
+  body.append(labels, columns);
+  wrapper.append(header, body);
+  container.appendChild(wrapper);
+  applyEventDensity(wrapper);
 };
 
 const renderMonth = () => {
@@ -227,59 +613,11 @@ const renderMonth = () => {
 };
 
 const renderWeek = () => {
-  const grid = document.createElement("div");
-  grid.className = "calendar-grid week";
-  const { start, end } = getWeekRange(state.currentDate);
-  const expandedEvents = expandRecurring(state.events, { start, end });
-  for (let i = 0; i < 7; i += 1) {
-    const day = new Date(start);
-    day.setDate(start.getDate() + i);
-    const cell = document.createElement("div");
-    cell.className = "day-cell";
-    if (isSameDay(day, new Date())) cell.classList.add("today");
-    const number = document.createElement("div");
-    number.className = "day-number";
-    number.textContent = day.toLocaleDateString("en-US", {
-      weekday: "short",
-      day: "numeric",
-    });
-    cell.appendChild(number);
-    const eventsForDay = expandedEvents.filter((event) =>
-      isSameDay(normalizeDate(event.date), day)
-    );
-    eventsForDay.forEach((event) => cell.appendChild(createEventChip(event)));
-    grid.appendChild(cell);
-  }
-  elements.calendarView.appendChild(grid);
+  renderWeekTimeline(elements.calendarView);
 };
 
 const renderDay = () => {
-  const grid = document.createElement("div");
-  grid.className = "calendar-grid day";
-  const cell = document.createElement("div");
-  cell.className = "day-cell";
-  const number = document.createElement("div");
-  number.className = "day-number";
-  number.textContent = state.currentDate.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-  cell.appendChild(number);
-  const range = { start: state.currentDate, end: state.currentDate };
-  const expandedEvents = expandRecurring(state.events, range);
-  const eventsForDay = expandedEvents.filter((event) =>
-    isSameDay(normalizeDate(event.date), state.currentDate)
-  );
-  if (!eventsForDay.length) {
-    const empty = document.createElement("div");
-    empty.className = "event-meta";
-    empty.textContent = "No events yet. Add one to start planning.";
-    cell.appendChild(empty);
-  }
-  eventsForDay.forEach((event) => cell.appendChild(createEventChip(event)));
-  grid.appendChild(cell);
-  elements.calendarView.appendChild(grid);
+  renderDayTimeline(elements.calendarView);
 };
 
 const renderUpcoming = () => {
@@ -305,7 +643,9 @@ const renderUpcoming = () => {
 
   upcoming.forEach((event) => {
     const item = document.createElement("div");
-    item.className = "list-item";
+    item.className = "list-item clickable";
+    item.setAttribute("role", "button");
+    item.tabIndex = 0;
     item.innerHTML = `
       <div>
         <strong>${event.title}</strong>
@@ -319,6 +659,17 @@ const renderUpcoming = () => {
     badge.className = `priority ${event.priority}`;
     badge.textContent = priorityLabel[event.priority];
     item.appendChild(badge);
+    const openEditor = () => {
+      const targetId = event.originalId || event.id;
+      openEventEditor(targetId);
+    };
+    item.addEventListener("click", openEditor);
+    item.addEventListener("keydown", (keyEvent) => {
+      if (keyEvent.key === "Enter" || keyEvent.key === " ") {
+        keyEvent.preventDefault();
+        openEditor();
+      }
+    });
     elements.upcomingList.appendChild(item);
   });
 };
@@ -334,7 +685,9 @@ const renderTasks = () => {
     }
     tasks.forEach((task) => {
       const item = document.createElement("div");
-      item.className = "list-item";
+      item.className = "list-item clickable";
+      item.setAttribute("role", "button");
+      item.tabIndex = 0;
       item.innerHTML = `
         <div>
           <strong>${task.title}</strong>
@@ -346,6 +699,16 @@ const renderTasks = () => {
       badge.className = `priority ${task.priority}`;
       badge.textContent = priorityLabel[task.priority];
       item.appendChild(badge);
+      const openEditor = () => {
+        openTaskEditor(task.id);
+      };
+      item.addEventListener("click", openEditor);
+      item.addEventListener("keydown", (keyEvent) => {
+        if (keyEvent.key === "Enter" || keyEvent.key === " ") {
+          keyEvent.preventDefault();
+          openEditor();
+        }
+      });
       container.appendChild(item);
     });
   };
@@ -389,8 +752,8 @@ const navigate = (direction) => {
 const handleEventSubmit = (event) => {
   event.preventDefault();
   const formData = new FormData(event.target);
-  state.events.push({
-    id: crypto.randomUUID(),
+  const editingId = event.target.dataset.editingId;
+  const payload = {
     title: formData.get("title"),
     date: formData.get("date"),
     start: formData.get("start"),
@@ -398,8 +761,18 @@ const handleEventSubmit = (event) => {
     recurring: formData.get("recurring"),
     priority: formData.get("priority"),
     notes: formData.get("notes"),
-  });
-  event.target.reset();
+  };
+  if (editingId) {
+    state.events = state.events.map((item) =>
+      item.id === editingId ? { ...item, ...payload } : item
+    );
+  } else {
+    state.events.push({
+      id: crypto.randomUUID(),
+      ...payload,
+    });
+  }
+  resetEventForm();
   closeModal(elements.eventModal);
   saveData();
   renderCalendar();
@@ -408,15 +781,25 @@ const handleEventSubmit = (event) => {
 const handleTaskSubmit = (event) => {
   event.preventDefault();
   const formData = new FormData(event.target);
-  state.tasks.push({
-    id: crypto.randomUUID(),
+  const editingId = event.target.dataset.editingId;
+  const payload = {
     title: formData.get("title"),
     date: formData.get("date"),
     recurring: formData.get("recurring"),
     priority: formData.get("priority"),
     notes: formData.get("notes"),
-  });
-  event.target.reset();
+  };
+  if (editingId) {
+    state.tasks = state.tasks.map((item) =>
+      item.id === editingId ? { ...item, ...payload } : item
+    );
+  } else {
+    state.tasks.push({
+      id: crypto.randomUUID(),
+      ...payload,
+    });
+  }
+  resetTaskForm();
   closeModal(elements.taskModal);
   saveData();
   renderTasks();
@@ -424,21 +807,27 @@ const handleTaskSubmit = (event) => {
 
 const setupListeners = () => {
   document.getElementById("addEventBtn").addEventListener("click", () => {
+    resetEventForm();
     openModal(elements.eventModal);
   });
   document.getElementById("addTaskBtn").addEventListener("click", () => {
+    resetTaskForm();
     openModal(elements.taskModal);
   });
   document.getElementById("quickAddTask").addEventListener("click", () => {
+    resetTaskForm();
     openModal(elements.taskModal);
   });
   document.getElementById("panelAddTask").addEventListener("click", () => {
+    resetTaskForm();
     openModal(elements.taskModal);
   });
 
   document.querySelectorAll("[data-close]").forEach((button) => {
     button.addEventListener("click", () => {
       closeModal(button.closest(".modal"));
+      resetEventForm();
+      resetTaskForm();
     });
   });
 
@@ -463,6 +852,35 @@ const setupListeners = () => {
 
   elements.defaultView.addEventListener("change", (event) => {
     updateView(event.target.value);
+  });
+
+  const workingHoursInput = document.getElementById("workingHours");
+  if (workingHoursInput) {
+    workingHoursInput.addEventListener("change", () => {
+      renderCalendar();
+    });
+  }
+
+  elements.eventDeleteBtn.addEventListener("click", () => {
+    const form = document.getElementById("eventForm");
+    const editingId = form.dataset.editingId;
+    if (!editingId) return;
+    deleteEvent(editingId);
+    resetEventForm();
+    closeModal(elements.eventModal);
+  });
+
+  elements.taskDeleteBtn.addEventListener("click", () => {
+    const form = document.getElementById("taskForm");
+    const editingId = form.dataset.editingId;
+    if (!editingId) return;
+    deleteTask(editingId);
+    resetTaskForm();
+    closeModal(elements.taskModal);
+  });
+
+  window.addEventListener("resize", () => {
+    applyEventDensity(document);
   });
 };
 
