@@ -17,6 +17,12 @@ const elements = {
   panelTaskList: document.getElementById("panelTaskList"),
   eventModal: document.getElementById("eventModal"),
   taskModal: document.getElementById("taskModal"),
+  eventModalTitle: document.getElementById("eventModalTitle"),
+  taskModalTitle: document.getElementById("taskModalTitle"),
+  eventDeleteBtn: document.getElementById("eventDeleteBtn"),
+  taskDeleteBtn: document.getElementById("taskDeleteBtn"),
+  eventSubmitBtn: document.getElementById("eventSubmitBtn"),
+  taskSubmitBtn: document.getElementById("taskSubmitBtn"),
   tasksPanel: document.getElementById("tasksPanel"),
   settingsPanel: document.getElementById("settingsPanel"),
   defaultView: document.getElementById("defaultView"),
@@ -106,7 +112,7 @@ const withinRange = (date, start, end) => date >= start && date <= end;
 const expandRecurring = (items, range) => {
   const expanded = [];
   items.forEach((item) => {
-    expanded.push(item);
+    expanded.push({ ...item, originalId: item.id });
     if (item.recurring === "none") return;
     const baseDate = normalizeDate(item.date);
     const current = new Date(baseDate);
@@ -115,6 +121,7 @@ const expandRecurring = (items, range) => {
         expanded.push({
           ...item,
           id: `${item.id}-${current.toISOString()}`,
+          originalId: item.id,
           date: current.toISOString().slice(0, 10),
           recurringInstance: true,
         });
@@ -125,6 +132,70 @@ const expandRecurring = (items, range) => {
     }
   });
   return expanded;
+};
+
+const deleteEvent = (eventId) => {
+  state.events = state.events.filter((event) => event.id !== eventId);
+  saveData();
+  renderCalendar();
+};
+
+const deleteTask = (taskId) => {
+  state.tasks = state.tasks.filter((task) => task.id !== taskId);
+  saveData();
+  renderTasks();
+};
+
+const resetEventForm = () => {
+  const form = document.getElementById("eventForm");
+  form.reset();
+  form.dataset.editingId = "";
+  elements.eventModalTitle.textContent = "New event";
+  elements.eventSubmitBtn.textContent = "Save event";
+  elements.eventDeleteBtn.classList.add("hidden");
+};
+
+const resetTaskForm = () => {
+  const form = document.getElementById("taskForm");
+  form.reset();
+  form.dataset.editingId = "";
+  elements.taskModalTitle.textContent = "New task";
+  elements.taskSubmitBtn.textContent = "Save task";
+  elements.taskDeleteBtn.classList.add("hidden");
+};
+
+const openEventEditor = (eventId) => {
+  const event = state.events.find((item) => item.id === eventId);
+  if (!event) return;
+  const form = document.getElementById("eventForm");
+  form.elements.title.value = event.title;
+  form.elements.date.value = event.date;
+  form.elements.start.value = event.start;
+  form.elements.duration.value = event.duration;
+  form.elements.recurring.value = event.recurring;
+  form.elements.priority.value = event.priority;
+  form.elements.notes.value = event.notes || "";
+  form.dataset.editingId = event.id;
+  elements.eventModalTitle.textContent = "Edit event";
+  elements.eventSubmitBtn.textContent = "Update event";
+  elements.eventDeleteBtn.classList.remove("hidden");
+  openModal(elements.eventModal);
+};
+
+const openTaskEditor = (taskId) => {
+  const task = state.tasks.find((item) => item.id === taskId);
+  if (!task) return;
+  const form = document.getElementById("taskForm");
+  form.elements.title.value = task.title;
+  form.elements.date.value = task.date;
+  form.elements.recurring.value = task.recurring;
+  form.elements.priority.value = task.priority;
+  form.elements.notes.value = task.notes || "";
+  form.dataset.editingId = task.id;
+  elements.taskModalTitle.textContent = "Edit task";
+  elements.taskSubmitBtn.textContent = "Update task";
+  elements.taskDeleteBtn.classList.remove("hidden");
+  openModal(elements.taskModal);
 };
 
 const setRangeLabel = () => {
@@ -163,7 +234,9 @@ const renderCalendar = () => {
 
 const createEventChip = (event) => {
   const chip = document.createElement("div");
-  chip.className = "event-chip";
+  chip.className = "event-chip clickable";
+  chip.setAttribute("role", "button");
+  chip.tabIndex = 0;
   const info = document.createElement("div");
   info.innerHTML = `
     <strong>${event.title}</strong>
@@ -173,6 +246,17 @@ const createEventChip = (event) => {
   badge.className = `priority ${event.priority}`;
   badge.textContent = priorityLabel[event.priority];
   chip.append(info, badge);
+  const openEditor = () => {
+    const targetId = event.originalId || event.id;
+    openEventEditor(targetId);
+  };
+  chip.addEventListener("click", openEditor);
+  chip.addEventListener("keydown", (keyEvent) => {
+    if (keyEvent.key === "Enter" || keyEvent.key === " ") {
+      keyEvent.preventDefault();
+      openEditor();
+    }
+  });
   return chip;
 };
 
@@ -305,7 +389,9 @@ const renderUpcoming = () => {
 
   upcoming.forEach((event) => {
     const item = document.createElement("div");
-    item.className = "list-item";
+    item.className = "list-item clickable";
+    item.setAttribute("role", "button");
+    item.tabIndex = 0;
     item.innerHTML = `
       <div>
         <strong>${event.title}</strong>
@@ -319,6 +405,17 @@ const renderUpcoming = () => {
     badge.className = `priority ${event.priority}`;
     badge.textContent = priorityLabel[event.priority];
     item.appendChild(badge);
+    const openEditor = () => {
+      const targetId = event.originalId || event.id;
+      openEventEditor(targetId);
+    };
+    item.addEventListener("click", openEditor);
+    item.addEventListener("keydown", (keyEvent) => {
+      if (keyEvent.key === "Enter" || keyEvent.key === " ") {
+        keyEvent.preventDefault();
+        openEditor();
+      }
+    });
     elements.upcomingList.appendChild(item);
   });
 };
@@ -334,7 +431,9 @@ const renderTasks = () => {
     }
     tasks.forEach((task) => {
       const item = document.createElement("div");
-      item.className = "list-item";
+      item.className = "list-item clickable";
+      item.setAttribute("role", "button");
+      item.tabIndex = 0;
       item.innerHTML = `
         <div>
           <strong>${task.title}</strong>
@@ -346,6 +445,16 @@ const renderTasks = () => {
       badge.className = `priority ${task.priority}`;
       badge.textContent = priorityLabel[task.priority];
       item.appendChild(badge);
+      const openEditor = () => {
+        openTaskEditor(task.id);
+      };
+      item.addEventListener("click", openEditor);
+      item.addEventListener("keydown", (keyEvent) => {
+        if (keyEvent.key === "Enter" || keyEvent.key === " ") {
+          keyEvent.preventDefault();
+          openEditor();
+        }
+      });
       container.appendChild(item);
     });
   };
@@ -389,8 +498,8 @@ const navigate = (direction) => {
 const handleEventSubmit = (event) => {
   event.preventDefault();
   const formData = new FormData(event.target);
-  state.events.push({
-    id: crypto.randomUUID(),
+  const editingId = event.target.dataset.editingId;
+  const payload = {
     title: formData.get("title"),
     date: formData.get("date"),
     start: formData.get("start"),
@@ -398,8 +507,18 @@ const handleEventSubmit = (event) => {
     recurring: formData.get("recurring"),
     priority: formData.get("priority"),
     notes: formData.get("notes"),
-  });
-  event.target.reset();
+  };
+  if (editingId) {
+    state.events = state.events.map((item) =>
+      item.id === editingId ? { ...item, ...payload } : item
+    );
+  } else {
+    state.events.push({
+      id: crypto.randomUUID(),
+      ...payload,
+    });
+  }
+  resetEventForm();
   closeModal(elements.eventModal);
   saveData();
   renderCalendar();
@@ -408,15 +527,25 @@ const handleEventSubmit = (event) => {
 const handleTaskSubmit = (event) => {
   event.preventDefault();
   const formData = new FormData(event.target);
-  state.tasks.push({
-    id: crypto.randomUUID(),
+  const editingId = event.target.dataset.editingId;
+  const payload = {
     title: formData.get("title"),
     date: formData.get("date"),
     recurring: formData.get("recurring"),
     priority: formData.get("priority"),
     notes: formData.get("notes"),
-  });
-  event.target.reset();
+  };
+  if (editingId) {
+    state.tasks = state.tasks.map((item) =>
+      item.id === editingId ? { ...item, ...payload } : item
+    );
+  } else {
+    state.tasks.push({
+      id: crypto.randomUUID(),
+      ...payload,
+    });
+  }
+  resetTaskForm();
   closeModal(elements.taskModal);
   saveData();
   renderTasks();
@@ -424,21 +553,27 @@ const handleTaskSubmit = (event) => {
 
 const setupListeners = () => {
   document.getElementById("addEventBtn").addEventListener("click", () => {
+    resetEventForm();
     openModal(elements.eventModal);
   });
   document.getElementById("addTaskBtn").addEventListener("click", () => {
+    resetTaskForm();
     openModal(elements.taskModal);
   });
   document.getElementById("quickAddTask").addEventListener("click", () => {
+    resetTaskForm();
     openModal(elements.taskModal);
   });
   document.getElementById("panelAddTask").addEventListener("click", () => {
+    resetTaskForm();
     openModal(elements.taskModal);
   });
 
   document.querySelectorAll("[data-close]").forEach((button) => {
     button.addEventListener("click", () => {
       closeModal(button.closest(".modal"));
+      resetEventForm();
+      resetTaskForm();
     });
   });
 
@@ -463,6 +598,24 @@ const setupListeners = () => {
 
   elements.defaultView.addEventListener("change", (event) => {
     updateView(event.target.value);
+  });
+
+  elements.eventDeleteBtn.addEventListener("click", () => {
+    const form = document.getElementById("eventForm");
+    const editingId = form.dataset.editingId;
+    if (!editingId) return;
+    deleteEvent(editingId);
+    resetEventForm();
+    closeModal(elements.eventModal);
+  });
+
+  elements.taskDeleteBtn.addEventListener("click", () => {
+    const form = document.getElementById("taskForm");
+    const editingId = form.dataset.editingId;
+    if (!editingId) return;
+    deleteTask(editingId);
+    resetTaskForm();
+    closeModal(elements.taskModal);
   });
 };
 
