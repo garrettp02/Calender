@@ -332,21 +332,6 @@ const layoutOverlapsForDay = (events) => {
   };
 };
 
-const applyEventDensity = (container) => {
-  const events = container.querySelectorAll(".timeline-event");
-  events.forEach((event) => {
-    event.classList.remove("event--full", "event--compact", "event--micro");
-    const height = event.clientHeight;
-    if (height <= 24) {
-      event.classList.add("event--micro");
-    } else if (height <= 44) {
-      event.classList.add("event--compact");
-    } else {
-      event.classList.add("event--full");
-    }
-  });
-};
-
 const renderDayTimeline = (container) => {
   const { start, end } = parseWorkingHours();
   const pxPerMinute = 1.2;
@@ -427,10 +412,6 @@ const renderDayTimeline = (container) => {
     block.setAttribute("role", "button");
     block.tabIndex = 0;
     block.innerHTML = `
-      <strong class="event-title">${event.title}</strong>
-      <span class="event-meta event-time">${formatTime(event.start)} · ${
-      event.duration
-    }m</span>
       <strong>${event.title}</strong>
       <span class="event-meta">${formatTime(event.start)} · ${event.duration}m</span>
     `;
@@ -451,7 +432,6 @@ const renderDayTimeline = (container) => {
   body.append(labels, dayColumn);
   wrapper.append(header, body);
   container.appendChild(wrapper);
-  applyEventDensity(wrapper);
 };
 
 const renderWeekTimeline = (container) => {
@@ -470,7 +450,6 @@ const renderWeekTimeline = (container) => {
 
   const headerSpacer = document.createElement("div");
   headerSpacer.className = "time-spacer";
-  header.appendChild(headerSpacer);
   const headerScroll = document.createElement("div");
   headerScroll.className = "week-header-scroll";
   const headerGrid = document.createElement("div");
@@ -485,9 +464,6 @@ const renderWeekTimeline = (container) => {
       weekday: "short",
       day: "numeric",
     });
-    header.appendChild(label);
-  }
-
     headerGrid.appendChild(label);
   }
 
@@ -568,10 +544,6 @@ const renderWeekTimeline = (container) => {
       block.setAttribute("role", "button");
       block.tabIndex = 0;
       block.innerHTML = `
-        <strong class="event-title">${event.title}</strong>
-        <span class="event-meta event-time">${formatTime(event.start)} · ${
-        event.duration
-      }m</span>
         <strong>${event.title}</strong>
         <span class="event-meta">${formatTime(event.start)}</span>
       `;
@@ -595,7 +567,6 @@ const renderWeekTimeline = (container) => {
   body.append(labels, columns);
   wrapper.append(header, body);
   container.appendChild(wrapper);
-  applyEventDensity(wrapper);
 };
 
 const renderMonth = () => {
@@ -932,10 +903,6 @@ const setupListeners = () => {
     deleteTask(editingId);
     resetTaskForm();
     closeModal(elements.taskModal);
-  });
-
-  window.addEventListener("resize", () => {
-    applyEventDensity(document);
   });
 };
 
