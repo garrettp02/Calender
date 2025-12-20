@@ -214,6 +214,7 @@ button.icon {
 .timeline-header.week-header {
   display: grid;
   grid-template-columns: 80px repeat(7, minmax(0, 1fr));
+  grid-template-columns: 80px 1fr;
   gap: 8px;
   align-items: center;
   font-size: 13px;
@@ -222,6 +223,17 @@ button.icon {
 
 .time-spacer {
   width: 80px;
+}
+
+.week-header-scroll {
+  overflow-x: auto;
+}
+
+.week-header-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(140px, 1fr));
+  gap: 8px;
+  min-width: 980px;
 }
 
 .week-day-label {
@@ -259,6 +271,10 @@ button.icon {
   gap: 8px;
   min-width: 0;
   overflow-x: hidden;
+  grid-template-columns: repeat(7, minmax(140px, 1fr));
+  gap: 8px;
+  min-width: 0;
+  overflow-x: auto;
   padding-bottom: 8px;
 }
 
@@ -268,6 +284,7 @@ button.icon {
   border-radius: 14px;
   background: var(--panel);
   min-width: 0;
+  min-width: 140px;
   overflow: hidden;
   background-image: linear-gradient(
     to bottom,
@@ -381,6 +398,32 @@ button.icon {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.item-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.icon-button {
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.icon-button.danger {
+  color: var(--high);
+  border-color: rgba(239, 91, 91, 0.4);
+  background: rgba(239, 91, 91, 0.08);
 }
 
 .event-meta {

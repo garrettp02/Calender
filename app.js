@@ -165,6 +165,15 @@ const expandRecurring = (items, range) => {
   return expanded;
 };
 
+const createDeleteButton = (label) => {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "icon-button danger";
+  button.setAttribute("aria-label", label);
+  button.textContent = "✕";
+  return button;
+};
+
 const deleteEvent = (eventId) => {
   state.events = state.events.filter((event) => event.id !== eventId);
   saveData();
@@ -289,6 +298,16 @@ const createEventChip = (event) => {
       openEditor();
     }
   });
+  const actions = document.createElement("div");
+  actions.className = "item-actions";
+  actions.appendChild(badge);
+  const deleteButton = createDeleteButton("Delete event");
+  deleteButton.addEventListener("click", () => {
+    const targetId = event.originalId || event.id;
+    deleteEvent(targetId);
+  });
+  actions.appendChild(deleteButton);
+  chip.append(info, actions);
   return chip;
 };
 
@@ -412,6 +431,8 @@ const renderDayTimeline = (container) => {
       <span class="event-meta event-time">${formatTime(event.start)} · ${
       event.duration
     }m</span>
+      <strong>${event.title}</strong>
+      <span class="event-meta">${formatTime(event.start)} · ${event.duration}m</span>
     `;
     const openEditor = () => {
       const targetId = event.originalId || event.id;
@@ -450,6 +471,10 @@ const renderWeekTimeline = (container) => {
   const headerSpacer = document.createElement("div");
   headerSpacer.className = "time-spacer";
   header.appendChild(headerSpacer);
+  const headerScroll = document.createElement("div");
+  headerScroll.className = "week-header-scroll";
+  const headerGrid = document.createElement("div");
+  headerGrid.className = "week-header-grid";
 
   for (let i = 0; i < 7; i += 1) {
     const day = new Date(weekStart);
@@ -462,6 +487,12 @@ const renderWeekTimeline = (container) => {
     });
     header.appendChild(label);
   }
+
+    headerGrid.appendChild(label);
+  }
+
+  headerScroll.appendChild(headerGrid);
+  header.append(headerSpacer, headerScroll);
 
   const body = document.createElement("div");
   body.className = "timeline-body week-body";
@@ -480,6 +511,9 @@ const renderWeekTimeline = (container) => {
 
   const columns = document.createElement("div");
   columns.className = "week-columns";
+  columns.addEventListener("scroll", () => {
+    headerScroll.scrollLeft = columns.scrollLeft;
+  });
 
   const expandedEvents = expandRecurring(state.events, { start: weekStart, end: weekEnd })
     .map((event) => ({
@@ -538,6 +572,8 @@ const renderWeekTimeline = (container) => {
         <span class="event-meta event-time">${formatTime(event.start)} · ${
         event.duration
       }m</span>
+        <strong>${event.title}</strong>
+        <span class="event-meta">${formatTime(event.start)}</span>
       `;
       const openEditor = () => {
         const targetId = event.originalId || event.id;
@@ -655,6 +691,8 @@ const renderUpcoming = () => {
         <div class="event-meta">${recurringLabel[event.recurring]}</div>
       </div>
     `;
+    const actions = document.createElement("div");
+    actions.className = "item-actions";
     const badge = document.createElement("span");
     badge.className = `priority ${event.priority}`;
     badge.textContent = priorityLabel[event.priority];
@@ -670,6 +708,14 @@ const renderUpcoming = () => {
         openEditor();
       }
     });
+    actions.appendChild(badge);
+    const deleteButton = createDeleteButton("Delete event");
+    deleteButton.addEventListener("click", () => {
+      const targetId = event.originalId || event.id;
+      deleteEvent(targetId);
+    });
+    actions.appendChild(deleteButton);
+    item.appendChild(actions);
     elements.upcomingList.appendChild(item);
   });
 };
@@ -695,6 +741,8 @@ const renderTasks = () => {
           <div class="event-meta">${recurringLabel[task.recurring]}</div>
         </div>
       `;
+      const actions = document.createElement("div");
+      actions.className = "item-actions";
       const badge = document.createElement("span");
       badge.className = `priority ${task.priority}`;
       badge.textContent = priorityLabel[task.priority];
@@ -709,6 +757,13 @@ const renderTasks = () => {
           openEditor();
         }
       });
+      actions.appendChild(badge);
+      const deleteButton = createDeleteButton("Delete task");
+      deleteButton.addEventListener("click", () => {
+        deleteTask(task.id);
+      });
+      actions.appendChild(deleteButton);
+      item.appendChild(actions);
       container.appendChild(item);
     });
   };
