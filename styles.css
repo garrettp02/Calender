@@ -54,12 +54,6 @@ h1 {
   margin-top: 6px;
 }
 
-.top-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
 button,
 select,
 input,
@@ -92,6 +86,11 @@ button.ghost.danger {
   border-color: rgba(239, 91, 91, 0.5);
 }
 
+button.ghost.danger {
+  color: var(--high);
+  border-color: rgba(239, 91, 91, 0.5);
+}
+
 button.text {
   background: none;
   border: none;
@@ -111,8 +110,30 @@ button.icon {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(6px);
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.toolbar-group.center {
+  flex: 1;
+  justify-content: center;
+  min-width: 220px;
+}
+
+.toolbar-group.right {
+  justify-content: flex-end;
 }
 
 .segmented {
@@ -507,6 +528,17 @@ textarea {
     width: calc(100% - 48px);
     justify-content: space-around;
   }
+
+  .toolbar-group.center {
+    order: 3;
+    flex-basis: 100%;
+    justify-content: center;
+  }
+
+  .toolbar-group.right {
+    order: 2;
+    margin-left: auto;
+  }
 }
 
 @media (max-width: 720px) {
@@ -517,6 +549,11 @@ textarea {
 
   .toolbar {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+  }
+
+  .toolbar-group,
+  .toolbar-group.right {
+    justify-content: flex-start;
   }
 }

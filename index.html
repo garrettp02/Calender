@@ -19,25 +19,29 @@
           <p class="eyebrow"></p>
           <h1></h1>
         </div>
-        <div class="top-actions">
-          <button class="ghost" id="todayBtn">Today</button>
-          <button class="primary" id="addEventBtn">Add event</button>
-          <button class="ghost" id="addTaskBtn">Add task</button>
-        </div>
       </header>
 
       <section class="toolbar">
-        <div class="segmented" role="tablist">
-          <button class="segment active" data-view="day">Day</button>
-          <button class="segment" data-view="week">Week</button>
-          <button class="segment" data-view="month">Month</button>
+        <div class="toolbar-group">
+          <div class="segmented" role="tablist">
+            <button class="segment active" data-view="day">Day</button>
+            <button class="segment" data-view="week">Week</button>
+            <button class="segment" data-view="month">Month</button>
+          </div>
         </div>
-        <div class="date-controls">
-          <button class="icon" id="prevBtn" aria-label="Previous">
-            ‹
-          </button>
-          <div class="current-range" id="rangeLabel"></div>
-          <button class="icon" id="nextBtn" aria-label="Next">›</button>
+        <div class="toolbar-group center">
+          <div class="date-controls">
+            <button class="icon" id="prevBtn" aria-label="Previous">
+              ‹
+            </button>
+            <div class="current-range" id="rangeLabel"></div>
+            <button class="icon" id="nextBtn" aria-label="Next">›</button>
+          </div>
+        </div>
+        <div class="toolbar-group right">
+          <button class="ghost" id="todayBtn">Today</button>
+          <button class="primary" id="addEventBtn">Add event</button>
+          <button class="ghost" id="addTaskBtn">Add task</button>
         </div>
       </section>
 
