@@ -213,6 +213,7 @@ button.icon {
 
 .timeline-header.week-header {
   display: grid;
+  grid-template-columns: 80px repeat(7, minmax(0, 1fr));
   grid-template-columns: 80px 1fr;
   gap: 8px;
   align-items: center;
@@ -240,12 +241,17 @@ button.icon {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .timeline-body {
   display: grid;
   grid-template-columns: 80px 1fr;
   gap: 8px;
+  min-width: 0;
+}
+
+.timeline-body.week-body {
   min-width: 0;
 }
 
@@ -266,6 +272,12 @@ button.icon {
 
 .week-columns {
   display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+  overflow-x: hidden;
+  padding-bottom: 8px;
+  width: 100%;
   grid-template-columns: repeat(7, minmax(140px, 1fr));
   gap: 8px;
   min-width: 0;
@@ -278,6 +290,7 @@ button.icon {
   border: 1px solid var(--line);
   border-radius: 14px;
   background: var(--panel);
+  min-width: 0;
   min-width: 140px;
   overflow: hidden;
   background-image: linear-gradient(
@@ -305,6 +318,7 @@ button.icon {
   gap: 4px;
   max-width: 100%;
   overflow: hidden;
+  min-width: 0;
 }
 
 .timeline-event strong,
@@ -312,6 +326,36 @@ button.icon {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.timeline-event.event--compact {
+  justify-content: center;
+  gap: 0;
+  padding: 4px 6px;
+}
+
+.timeline-event.event--compact .event-time {
+  display: none;
+}
+
+.timeline-event.event--micro {
+  padding: 0;
+  gap: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.timeline-event.event--micro .event-title,
+.timeline-event.event--micro .event-time {
+  display: none;
+}
+
+.timeline-event.event--micro::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--primary);
 }
 
 .day-label {
