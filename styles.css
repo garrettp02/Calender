@@ -181,6 +181,7 @@ button.icon {
   padding: 24px;
   border: 1px solid var(--line);
   min-height: 520px;
+  overflow: hidden;
 }
 
 .calendar-grid {
@@ -193,11 +194,124 @@ button.icon {
 }
 
 .calendar-grid.week {
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 
 .calendar-grid.day {
   grid-template-columns: 1fr;
+}
+
+.timeline-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.timeline-header {
+  font-weight: 600;
+}
+
+.timeline-header.week-header {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.time-spacer {
+  width: 80px;
+}
+
+.week-header-scroll {
+  overflow-x: auto;
+}
+
+.week-header-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(140px, 1fr));
+  gap: 8px;
+  min-width: 980px;
+}
+
+.week-day-label {
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timeline-body {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 8px;
+  min-width: 0;
+}
+
+.time-labels {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  font-size: 12px;
+  color: var(--muted);
+  padding-top: 2px;
+}
+
+.time-label {
+  display: flex;
+  align-items: flex-start;
+  height: 60px;
+}
+
+.week-columns {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(140px, 1fr));
+  gap: 8px;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.day-column {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  min-width: 140px;
+  overflow: hidden;
+  background-image: linear-gradient(
+    to bottom,
+    rgba(27, 27, 31, 0.08) 1px,
+    transparent 1px
+  );
+  background-size: 100% var(--hour-height);
+}
+
+.day-column-inner {
+  position: relative;
+  height: 100%;
+}
+
+.timeline-event {
+  position: absolute;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: #f1f4ff;
+  border: 1px solid #dbe4ff;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.timeline-event strong,
+.timeline-event .event-meta {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .day-label {
@@ -235,6 +349,19 @@ button.icon {
   display: flex;
   justify-content: space-between;
   gap: 8px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.event-chip .event-info {
+  min-width: 0;
+}
+
+.event-chip strong {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .item-actions {

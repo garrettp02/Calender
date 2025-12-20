@@ -92,6 +92,37 @@ const isSameDay = (a, b) =>
 
 const normalizeDate = (value) => new Date(`${value}T00:00:00`);
 
+const timeToMinutes = (time) => {
+  if (!time) return 0;
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+};
+
+const minutesToTimeLabel = (minutes) => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  const date = new Date();
+  date.setHours(hours, mins, 0, 0);
+  return date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+};
+
+const parseWorkingHours = () => {
+  const raw = document.getElementById("workingHours")?.value || "09:00 - 18:00";
+  const [startRaw, endRaw] = raw.split("-").map((part) => part.trim());
+  const start = timeToMinutes(startRaw || "09:00");
+  const end = timeToMinutes(endRaw || "18:00");
+  if (Number.isNaN(start) || Number.isNaN(end) || start >= end) {
+    return { start: timeToMinutes("09:00"), end: timeToMinutes("18:00") };
+  }
+  return { start, end };
+};
+
+const minutesToTopPx = (minutes, startMinutes, pxPerMinute) =>
+  Math.max(0, minutes - startMinutes) * pxPerMinute;
+
 const getWeekRange = (date) => {
   const start = new Date(date);
   const day = start.getDay();
@@ -247,6 +278,7 @@ const createEventChip = (event) => {
   chip.setAttribute("role", "button");
   chip.tabIndex = 0;
   const info = document.createElement("div");
+  info.className = "event-info";
   info.innerHTML = `
     <strong>${event.title}</strong>
     <div class="event-meta">${formatTime(event.start)} · ${event.duration}m</div>
@@ -277,6 +309,264 @@ const createEventChip = (event) => {
   actions.appendChild(deleteButton);
   chip.append(info, actions);
   return chip;
+};
+
+const layoutOverlapsForDay = (events) => {
+  const lanes = [];
+  const positioned = events.map((event) => {
+    let laneIndex = lanes.findIndex((endTime) => event.startMinutes >= endTime);
+    if (laneIndex === -1) {
+      laneIndex = lanes.length;
+      lanes.push(event.endMinutes);
+    } else {
+      lanes[laneIndex] = event.endMinutes;
+    }
+    return {
+      ...event,
+      lane: laneIndex,
+    };
+  });
+  return {
+    events: positioned,
+    laneCount: Math.max(1, lanes.length),
+  };
+};
+
+const renderDayTimeline = (container) => {
+  const { start, end } = parseWorkingHours();
+  const pxPerMinute = 1.2;
+  const totalMinutes = end - start;
+  const hourHeight = pxPerMinute * 60;
+  const timelineHeight = totalMinutes * pxPerMinute;
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "timeline-view day";
+
+  const header = document.createElement("div");
+  header.className = "timeline-header";
+  header.textContent = state.currentDate.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+
+  const body = document.createElement("div");
+  body.className = "timeline-body";
+
+  const labels = document.createElement("div");
+  labels.className = "time-labels";
+  labels.style.height = `${timelineHeight}px`;
+
+  for (let time = start; time <= end; time += 60) {
+    const label = document.createElement("div");
+    label.className = "time-label";
+    label.style.height = `${hourHeight}px`;
+    label.textContent = minutesToTimeLabel(time);
+    labels.appendChild(label);
+  }
+
+  const dayColumn = document.createElement("div");
+  dayColumn.className = "day-column";
+  dayColumn.style.height = `${timelineHeight}px`;
+  dayColumn.style.setProperty("--hour-height", `${hourHeight}px`);
+
+  const inner = document.createElement("div");
+  inner.className = "day-column-inner";
+  dayColumn.appendChild(inner);
+
+  const expandedEvents = expandRecurring(state.events, {
+    start: state.currentDate,
+    end: state.currentDate,
+  });
+
+  const dayEvents = expandedEvents
+    .filter((event) => isSameDay(normalizeDate(event.date), state.currentDate))
+    .map((event) => {
+      const startMinutes = timeToMinutes(event.start);
+      const endMinutes = startMinutes + event.duration;
+      return {
+        ...event,
+        startMinutes,
+        endMinutes,
+      };
+    })
+    .filter((event) => event.endMinutes > start && event.startMinutes < end)
+    .sort((a, b) => a.startMinutes - b.startMinutes);
+
+  const { events: positioned, laneCount } = layoutOverlapsForDay(dayEvents);
+
+  positioned.forEach((event) => {
+    const clampedStart = Math.max(event.startMinutes, start);
+    const clampedEnd = Math.min(event.endMinutes, end);
+    const top = minutesToTopPx(clampedStart, start, pxPerMinute);
+    const height = Math.max(24, (clampedEnd - clampedStart) * pxPerMinute);
+    const width = 100 / laneCount;
+    const left = event.lane * width;
+
+    const block = document.createElement("div");
+    block.className = "timeline-event clickable";
+    block.style.top = `${top}px`;
+    block.style.height = `${height}px`;
+    block.style.left = `${left}%`;
+    block.style.width = `${width}%`;
+    block.setAttribute("role", "button");
+    block.tabIndex = 0;
+    block.innerHTML = `
+      <strong>${event.title}</strong>
+      <span class="event-meta">${formatTime(event.start)} · ${event.duration}m</span>
+    `;
+    const openEditor = () => {
+      const targetId = event.originalId || event.id;
+      openEventEditor(targetId);
+    };
+    block.addEventListener("click", openEditor);
+    block.addEventListener("keydown", (keyEvent) => {
+      if (keyEvent.key === "Enter" || keyEvent.key === " ") {
+        keyEvent.preventDefault();
+        openEditor();
+      }
+    });
+    inner.appendChild(block);
+  });
+
+  body.append(labels, dayColumn);
+  wrapper.append(header, body);
+  container.appendChild(wrapper);
+};
+
+const renderWeekTimeline = (container) => {
+  const { start, end } = parseWorkingHours();
+  const pxPerMinute = 1.1;
+  const totalMinutes = end - start;
+  const hourHeight = pxPerMinute * 60;
+  const timelineHeight = totalMinutes * pxPerMinute;
+  const { start: weekStart, end: weekEnd } = getWeekRange(state.currentDate);
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "timeline-view week";
+
+  const header = document.createElement("div");
+  header.className = "timeline-header week-header";
+
+  const headerSpacer = document.createElement("div");
+  headerSpacer.className = "time-spacer";
+  const headerScroll = document.createElement("div");
+  headerScroll.className = "week-header-scroll";
+  const headerGrid = document.createElement("div");
+  headerGrid.className = "week-header-grid";
+
+  for (let i = 0; i < 7; i += 1) {
+    const day = new Date(weekStart);
+    day.setDate(weekStart.getDate() + i);
+    const label = document.createElement("div");
+    label.className = "week-day-label";
+    label.textContent = day.toLocaleDateString("en-US", {
+      weekday: "short",
+      day: "numeric",
+    });
+    headerGrid.appendChild(label);
+  }
+
+  headerScroll.appendChild(headerGrid);
+  header.append(headerSpacer, headerScroll);
+
+  const body = document.createElement("div");
+  body.className = "timeline-body week-body";
+
+  const labels = document.createElement("div");
+  labels.className = "time-labels";
+  labels.style.height = `${timelineHeight}px`;
+
+  for (let time = start; time <= end; time += 60) {
+    const label = document.createElement("div");
+    label.className = "time-label";
+    label.style.height = `${hourHeight}px`;
+    label.textContent = minutesToTimeLabel(time);
+    labels.appendChild(label);
+  }
+
+  const columns = document.createElement("div");
+  columns.className = "week-columns";
+  columns.addEventListener("scroll", () => {
+    headerScroll.scrollLeft = columns.scrollLeft;
+  });
+
+  const expandedEvents = expandRecurring(state.events, { start: weekStart, end: weekEnd })
+    .map((event) => ({
+      ...event,
+      dateObj: normalizeDate(event.date),
+    }))
+    .filter((event) => event.dateObj >= weekStart && event.dateObj <= weekEnd);
+
+  for (let i = 0; i < 7; i += 1) {
+    const day = new Date(weekStart);
+    day.setDate(weekStart.getDate() + i);
+
+    const column = document.createElement("div");
+    column.className = "day-column";
+    column.style.height = `${timelineHeight}px`;
+    column.style.setProperty("--hour-height", `${hourHeight}px`);
+
+    const inner = document.createElement("div");
+    inner.className = "day-column-inner";
+    column.appendChild(inner);
+
+    const dayEvents = expandedEvents
+      .filter((event) => isSameDay(event.dateObj, day))
+      .map((event) => {
+        const startMinutes = timeToMinutes(event.start);
+        const endMinutes = startMinutes + event.duration;
+        return {
+          ...event,
+          startMinutes,
+          endMinutes,
+        };
+      })
+      .filter((event) => event.endMinutes > start && event.startMinutes < end)
+      .sort((a, b) => a.startMinutes - b.startMinutes);
+
+    const { events: positioned, laneCount } = layoutOverlapsForDay(dayEvents);
+
+    positioned.forEach((event) => {
+      const clampedStart = Math.max(event.startMinutes, start);
+      const clampedEnd = Math.min(event.endMinutes, end);
+      const top = minutesToTopPx(clampedStart, start, pxPerMinute);
+      const height = Math.max(22, (clampedEnd - clampedStart) * pxPerMinute);
+      const width = 100 / laneCount;
+      const left = event.lane * width;
+
+      const block = document.createElement("div");
+      block.className = "timeline-event clickable";
+      block.style.top = `${top}px`;
+      block.style.height = `${height}px`;
+      block.style.left = `${left}%`;
+      block.style.width = `${width}%`;
+      block.setAttribute("role", "button");
+      block.tabIndex = 0;
+      block.innerHTML = `
+        <strong>${event.title}</strong>
+        <span class="event-meta">${formatTime(event.start)}</span>
+      `;
+      const openEditor = () => {
+        const targetId = event.originalId || event.id;
+        openEventEditor(targetId);
+      };
+      block.addEventListener("click", openEditor);
+      block.addEventListener("keydown", (keyEvent) => {
+        if (keyEvent.key === "Enter" || keyEvent.key === " ") {
+          keyEvent.preventDefault();
+          openEditor();
+        }
+      });
+      inner.appendChild(block);
+    });
+
+    columns.appendChild(column);
+  }
+
+  body.append(labels, columns);
+  wrapper.append(header, body);
+  container.appendChild(wrapper);
 };
 
 const renderMonth = () => {
@@ -330,59 +620,11 @@ const renderMonth = () => {
 };
 
 const renderWeek = () => {
-  const grid = document.createElement("div");
-  grid.className = "calendar-grid week";
-  const { start, end } = getWeekRange(state.currentDate);
-  const expandedEvents = expandRecurring(state.events, { start, end });
-  for (let i = 0; i < 7; i += 1) {
-    const day = new Date(start);
-    day.setDate(start.getDate() + i);
-    const cell = document.createElement("div");
-    cell.className = "day-cell";
-    if (isSameDay(day, new Date())) cell.classList.add("today");
-    const number = document.createElement("div");
-    number.className = "day-number";
-    number.textContent = day.toLocaleDateString("en-US", {
-      weekday: "short",
-      day: "numeric",
-    });
-    cell.appendChild(number);
-    const eventsForDay = expandedEvents.filter((event) =>
-      isSameDay(normalizeDate(event.date), day)
-    );
-    eventsForDay.forEach((event) => cell.appendChild(createEventChip(event)));
-    grid.appendChild(cell);
-  }
-  elements.calendarView.appendChild(grid);
+  renderWeekTimeline(elements.calendarView);
 };
 
 const renderDay = () => {
-  const grid = document.createElement("div");
-  grid.className = "calendar-grid day";
-  const cell = document.createElement("div");
-  cell.className = "day-cell";
-  const number = document.createElement("div");
-  number.className = "day-number";
-  number.textContent = state.currentDate.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-  cell.appendChild(number);
-  const range = { start: state.currentDate, end: state.currentDate };
-  const expandedEvents = expandRecurring(state.events, range);
-  const eventsForDay = expandedEvents.filter((event) =>
-    isSameDay(normalizeDate(event.date), state.currentDate)
-  );
-  if (!eventsForDay.length) {
-    const empty = document.createElement("div");
-    empty.className = "event-meta";
-    empty.textContent = "No events yet. Add one to start planning.";
-    cell.appendChild(empty);
-  }
-  eventsForDay.forEach((event) => cell.appendChild(createEventChip(event)));
-  grid.appendChild(cell);
-  elements.calendarView.appendChild(grid);
+  renderDayTimeline(elements.calendarView);
 };
 
 const renderUpcoming = () => {
@@ -637,6 +879,13 @@ const setupListeners = () => {
   elements.defaultView.addEventListener("change", (event) => {
     updateView(event.target.value);
   });
+
+  const workingHoursInput = document.getElementById("workingHours");
+  if (workingHoursInput) {
+    workingHoursInput.addEventListener("change", () => {
+      renderCalendar();
+    });
+  }
 
   elements.eventDeleteBtn.addEventListener("click", () => {
     const form = document.getElementById("eventForm");
