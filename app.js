@@ -165,6 +165,15 @@ const expandRecurring = (items, range) => {
   return expanded;
 };
 
+const createDeleteButton = (label) => {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "icon-button danger";
+  button.setAttribute("aria-label", label);
+  button.textContent = "✕";
+  return button;
+};
+
 const deleteEvent = (eventId) => {
   state.events = state.events.filter((event) => event.id !== eventId);
   saveData();
@@ -289,6 +298,16 @@ const createEventChip = (event) => {
       openEditor();
     }
   });
+  const actions = document.createElement("div");
+  actions.className = "item-actions";
+  actions.appendChild(badge);
+  const deleteButton = createDeleteButton("Delete event");
+  deleteButton.addEventListener("click", () => {
+    const targetId = event.originalId || event.id;
+    deleteEvent(targetId);
+  });
+  actions.appendChild(deleteButton);
+  chip.append(info, actions);
   return chip;
 };
 
@@ -643,6 +662,8 @@ const renderUpcoming = () => {
         <div class="event-meta">${recurringLabel[event.recurring]}</div>
       </div>
     `;
+    const actions = document.createElement("div");
+    actions.className = "item-actions";
     const badge = document.createElement("span");
     badge.className = `priority ${event.priority}`;
     badge.textContent = priorityLabel[event.priority];
@@ -658,6 +679,14 @@ const renderUpcoming = () => {
         openEditor();
       }
     });
+    actions.appendChild(badge);
+    const deleteButton = createDeleteButton("Delete event");
+    deleteButton.addEventListener("click", () => {
+      const targetId = event.originalId || event.id;
+      deleteEvent(targetId);
+    });
+    actions.appendChild(deleteButton);
+    item.appendChild(actions);
     elements.upcomingList.appendChild(item);
   });
 };
@@ -683,6 +712,8 @@ const renderTasks = () => {
           <div class="event-meta">${recurringLabel[task.recurring]}</div>
         </div>
       `;
+      const actions = document.createElement("div");
+      actions.className = "item-actions";
       const badge = document.createElement("span");
       badge.className = `priority ${task.priority}`;
       badge.textContent = priorityLabel[task.priority];
@@ -697,6 +728,13 @@ const renderTasks = () => {
           openEditor();
         }
       });
+      actions.appendChild(badge);
+      const deleteButton = createDeleteButton("Delete task");
+      deleteButton.addEventListener("click", () => {
+        deleteTask(task.id);
+      });
+      actions.appendChild(deleteButton);
+      item.appendChild(actions);
       container.appendChild(item);
     });
   };
