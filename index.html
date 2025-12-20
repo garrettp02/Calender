@@ -71,7 +71,7 @@
     <div class="modal hidden" id="eventModal" role="dialog" aria-modal="true">
       <div class="modal-card">
         <div class="modal-header">
-          <h2>New event</h2>
+          <h2 id="eventModalTitle">New event</h2>
           <button class="icon" data-close>✕</button>
         </div>
         <form id="eventForm">
@@ -116,7 +116,12 @@
             Notes
             <textarea name="notes" rows="3" placeholder="Optional notes"></textarea>
           </label>
-          <button class="primary" type="submit">Save event</button>
+          <div class="modal-actions">
+            <button class="ghost danger hidden" type="button" id="eventDeleteBtn">
+              Delete event
+            </button>
+            <button class="primary" type="submit" id="eventSubmitBtn">Save event</button>
+          </div>
         </form>
       </div>
     </div>
@@ -124,7 +129,7 @@
     <div class="modal hidden" id="taskModal" role="dialog" aria-modal="true">
       <div class="modal-card">
         <div class="modal-header">
-          <h2>New task</h2>
+          <h2 id="taskModalTitle">New task</h2>
           <button class="icon" data-close>✕</button>
         </div>
         <form id="taskForm">
@@ -159,7 +164,12 @@
             Notes
             <textarea name="notes" rows="3" placeholder="Optional notes"></textarea>
           </label>
-          <button class="primary" type="submit">Save task</button>
+          <div class="modal-actions">
+            <button class="ghost danger hidden" type="button" id="taskDeleteBtn">
+              Delete task
+            </button>
+            <button class="primary" type="submit" id="taskSubmitBtn">Save task</button>
+          </div>
         </form>
       </div>
     </div>
