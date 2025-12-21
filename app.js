@@ -127,8 +127,10 @@ const getWeekRange = (date) => {
   const start = new Date(date);
   const day = start.getDay();
   start.setDate(start.getDate() - day);
+  start.setHours(0, 0, 0, 0);
   const end = new Date(start);
   end.setDate(end.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
   return { start, end };
 };
 
