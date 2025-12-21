@@ -65,6 +65,52 @@
         </aside>
       </main>
 
+      <div class="panel hidden" id="tasksPanel">
+        <div class="panel-header">
+          <h2>Tasks</h2>
+          <button class="primary" id="panelAddTask">Add task</button>
+        </div>
+        <div class="panel-body">
+          <div class="panel-list" id="panelTaskList"></div>
+        </div>
+      </div>
+
+      <div class="panel hidden" id="settingsPanel">
+        <div class="panel-header">
+          <h2>Settings</h2>
+        </div>
+        <div class="panel-body">
+          <div class="setting">
+            <div>
+              <h4>Default view</h4>
+              <p>Choose the calendar view you open with.</p>
+            </div>
+            <select id="defaultView">
+              <option value="day">Day</option>
+              <option value="week">Week</option>
+              <option value="month">Month</option>
+            </select>
+          </div>
+          <div class="setting">
+            <div>
+              <h4>Working hours</h4>
+              <p>Set your focus hours for event highlights.</p>
+            </div>
+            <input type="text" id="workingHours" value="9:00 - 18:00" />
+          </div>
+          <div class="setting">
+            <div>
+              <h4>Show recurring events</h4>
+              <p>Keep repeating events visible in all views.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="showRecurring" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
       <nav class="bottom-nav">
         <button class="nav-item active" data-tab="calendar">Calendar</button>
         <button class="nav-item" data-tab="tasks">Tasks</button>
@@ -175,52 +221,6 @@
             <button class="primary" type="submit" id="taskSubmitBtn">Save task</button>
           </div>
         </form>
-      </div>
-    </div>
-
-    <div class="panel hidden" id="tasksPanel">
-      <div class="panel-header">
-        <h2>Tasks</h2>
-        <button class="primary" id="panelAddTask">Add task</button>
-      </div>
-      <div class="panel-body">
-        <div class="panel-list" id="panelTaskList"></div>
-      </div>
-    </div>
-
-    <div class="panel hidden" id="settingsPanel">
-      <div class="panel-header">
-        <h2>Settings</h2>
-      </div>
-      <div class="panel-body">
-        <div class="setting">
-          <div>
-            <h4>Default view</h4>
-            <p>Choose the calendar view you open with.</p>
-          </div>
-          <select id="defaultView">
-            <option value="day">Day</option>
-            <option value="week">Week</option>
-            <option value="month">Month</option>
-          </select>
-        </div>
-        <div class="setting">
-          <div>
-            <h4>Working hours</h4>
-            <p>Set your focus hours for event highlights.</p>
-          </div>
-          <input type="text" id="workingHours" value="9:00 - 18:00" />
-        </div>
-        <div class="setting">
-          <div>
-            <h4>Show recurring events</h4>
-            <p>Keep repeating events visible in all views.</p>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="showRecurring" checked />
-            <span class="slider"></span>
-          </label>
-        </div>
       </div>
     </div>
 
