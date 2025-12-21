@@ -225,14 +225,14 @@ button.icon {
 }
 
 .week-header-scroll {
-  overflow-x: auto;
+  overflow-x: visible;
 }
 
 .week-header-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(140px, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 8px;
-  min-width: 980px;
+  min-width: 0;
 }
 
 .week-day-label {
@@ -266,10 +266,10 @@ button.icon {
 
 .week-columns {
   display: grid;
-  grid-template-columns: repeat(7, minmax(140px, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 8px;
   min-width: 0;
-  overflow-x: auto;
+  overflow-x: visible;
   padding-bottom: 8px;
 }
 
@@ -278,7 +278,7 @@ button.icon {
   border: 1px solid var(--line);
   border-radius: 14px;
   background: var(--panel);
-  min-width: 140px;
+  min-width: 0;
   overflow: hidden;
   background-image: linear-gradient(
     to bottom,
